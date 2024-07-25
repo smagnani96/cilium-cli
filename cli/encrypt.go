@@ -46,7 +46,7 @@ func newCmdEncryptStatus() *cobra.Command {
 	cmd.Flags().StringVar(&params.AgentPodSelector, "agent-pod-selector", defaults.AgentPodSelector, "Label on cilium-agent pods to select with")
 	cmd.Flags().StringVar(&params.NodeName, "node", "", "Node from which encryption status will be fetched, omit to select all nodes")
 	cmd.Flags().BoolVar(&params.PerNodeDetails, "per-node-details", false, "Encryption status will be displayed for each cluster node separately")
-	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result, default 1 minute")
+	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result")
 	cmd.Flags().StringVarP(&params.Output, "output", "o", status.OutputSummary, "Output format. One of: json, summary")
 	return cmd
 }
@@ -72,7 +72,7 @@ func newCmdIPsecRotateKey() *cobra.Command {
 	cmd.Flags().StringVarP(&params.IPsecKeyAuthAlgo, "auth-algo", "", "", "IPsec key authentication algorithm (optional parameter, if omitted the current settings will be used). One of: gcm-aes, hmac-sha256, hmac-sha512")
 	cmd.Flags().StringVarP(&params.IPsecKeyPerNode, "key-per-node", "", "", "IPsec key per cluster node (optional parameter, if omitted the current settings will be used). One of: true, false")
 	_ = cmd.Flags().MarkHidden("key-per-node")
-	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result, default 1 minute")
+	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result")
 	return cmd
 }
 
@@ -92,7 +92,7 @@ func newCmdIPsecKeyStatus() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result, default 1 minute")
+	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result")
 	cmd.Flags().StringVarP(&params.Output, "output", "o", status.OutputSummary, "Output format. One of: json, summary")
 	return cmd
 }
