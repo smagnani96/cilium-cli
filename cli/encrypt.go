@@ -23,7 +23,9 @@ func newCmdEncrypt() *cobra.Command {
 		Aliases: []string{"encrypt"},
 	}
 	cmd.AddCommand(newCmdEncryptStatus())
+	cmd.AddCommand(newCmdIPsecCreateKey())
 	cmd.AddCommand(newCmdIPsecRotateKey())
+	cmd.AddCommand(newCmdIPsecDeleteKey())
 	cmd.AddCommand(newCmdIPsecKeyStatus())
 	return cmd
 }
@@ -59,7 +61,7 @@ func newCmdIPsecRotateKey() *cobra.Command {
 		Long:  "This command rotates IPsec encryption key in the cluster",
 		RunE: func(_ *cobra.Command, _ []string) error {
 			params.CiliumNamespace = namespace
-			if err := checkParams(params); err != nil {
+			if err := checkParamsRotate(params); err != nil {
 				fatalf("Input params are invalid: %s", err)
 			}
 			s := encrypt.NewEncrypt(k8sClient, params)
@@ -73,6 +75,50 @@ func newCmdIPsecRotateKey() *cobra.Command {
 	cmd.Flags().StringVarP(&params.IPsecKeyPerNode, "key-per-node", "", "", "IPsec key per cluster node (optional parameter, if omitted the current settings will be used). One of: true, false")
 	_ = cmd.Flags().MarkHidden("key-per-node")
 	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result")
+	return cmd
+}
+
+func newCmdIPsecCreateKey() *cobra.Command {
+	params := encrypt.Parameters{}
+	cmd := &cobra.Command{
+		Use:   "create-key",
+		Short: "Create IPsec key",
+		Long:  "This command creates IPsec encryption key in the cluster",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			params.CiliumNamespace = namespace
+			if err := checkParamsCreate(params); err != nil {
+				fatalf("Input params are invalid: %s", err)
+			}
+			s := encrypt.NewEncrypt(k8sClient, params)
+			if err := s.IPsecCreateKey(context.Background()); err != nil {
+				fatalf("Unable to create IPsec key: %s", err)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().StringVarP(&params.IPsecKeyAuthAlgo, "auth-algo", "", "gcm-aes", "IPsec key authentication algorithm. One of: gcm-aes, hmac-sha256, hmac-sha512")
+	cmd.Flags().StringVarP(&params.IPsecKeyPerNode, "key-per-node", "", "true", "IPsec key per cluster node. One of: true, false")
+	_ = cmd.Flags().MarkHidden("key-per-node")
+	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result.")
+	return cmd
+}
+
+func newCmdIPsecDeleteKey() *cobra.Command {
+	params := encrypt.Parameters{}
+	cmd := &cobra.Command{
+		Use:   "delete-key",
+		Short: "Delete IPsec key",
+		Long:  "This command deletes IPsec encryption key in the cluster",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			params.CiliumNamespace = namespace
+			s := encrypt.NewEncrypt(k8sClient, params)
+			if err := s.IPsecDeleteKey(context.Background()); err != nil {
+				fatalf("Unable to delete IPsec key: %s", err)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result.")
 	return cmd
 }
 
@@ -97,13 +143,25 @@ func newCmdIPsecKeyStatus() *cobra.Command {
 	return cmd
 }
 
-func checkParams(params encrypt.Parameters) error {
+func checkParamsRotate(params encrypt.Parameters) error {
 	switch params.IPsecKeyPerNode {
 	case "", "true", "false":
 	default:
 		return fmt.Errorf("key-per-node has invalid value: %s", params.IPsecKeyPerNode)
 	}
 	if !encrypt.IsIPsecAlgoSupported(params.IPsecKeyAuthAlgo) {
+		return fmt.Errorf("auth-algo has invalid value: %s", params.IPsecKeyAuthAlgo)
+	}
+	return nil
+}
+
+func checkParamsCreate(params encrypt.Parameters) error {
+	switch params.IPsecKeyPerNode {
+	case "true", "false":
+	default:
+		return fmt.Errorf("key-per-node has invalid value: %s", params.IPsecKeyPerNode)
+	}
+	if !encrypt.IsIPsecAlgoSupported(params.IPsecKeyAuthAlgo) || params.IPsecKeyAuthAlgo == "" {
 		return fmt.Errorf("auth-algo has invalid value: %s", params.IPsecKeyAuthAlgo)
 	}
 	return nil
